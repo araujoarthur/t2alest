@@ -1,5 +1,12 @@
 package tree
 
+import (
+	"strings"
+)
+
+type FilePath string
+type FilePathSteps []string
+
 type Tree struct {
 	root FolderNode
 }
@@ -19,9 +26,18 @@ func (t *Tree) Root() *FolderNode {
 }
 
 /*
-Follows a path and return the final node or an error if it's not possible to follow through the end.
+This function starts a navigation from the root path up to the final path in the string, returning it if it exists or an error if anything on the path
+does not exist or is a file (except the last, which can be a file).
 */
-func (t *Tree) followPath(path string) (*Node, error) {}
+func (t *Tree) followPath(path string, current_node Node) (Node, error) {
+	
+
+	if current_node == nil {
+		current_node = t.Root()
+	}
+
+	if path
+}
 
 /*
 Follows a path up to the point it's not possible anymore (i.e the rest of the path doesn't exist). Returns the most distant existent element
@@ -43,3 +59,13 @@ func (t *Tree) RemoveFolder(path string, recursive bool) error                  
 func (t *Tree) SearchAll(str string) []Node                                                {}
 func (t *Tree) SearchFile(str string) []FileNode                                           {}
 func (t *Tree) SearchFolder(str string) []FolderNode                                       {}
+
+
+func (t FilePath) Steps() FilePathSteps {
+	return strings.Split(t, "/")
+}
+
+
+func (t FilePathSteps) Rejoin() FilePath {
+	return strings.Join(t, "/")
+}

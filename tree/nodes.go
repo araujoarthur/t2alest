@@ -97,6 +97,28 @@ func createRootFolder() *FolderNode {
 }
 
 /*
+	Checks if there's a specific child. Returns it if it exists or an error if it doesn't.
+*/	
+func (fn *FolderNode) SearchChild(name string) (Node, error) {
+	if !fn.HasChildren() {
+		return nil, ETINoChildren
+	}
+
+	foldersChildren, err := fn.GetChildren()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, child := range foldersChildren {
+		if child.Name() == name {
+			return child, nil
+		}
+	}
+
+	return nil, ETIChildNotFound
+}
+
+/*
 Returns true if the current node has a parent, false otherwise.
 */
 func (fn *FolderNode) HasParent() bool {
