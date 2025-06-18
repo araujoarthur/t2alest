@@ -1,6 +1,7 @@
 package tree
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -9,10 +10,13 @@ type Node interface {
 	IsFolder() bool
 
 	Name() string
+	CleanName() string
 	Parent() *FolderNode
 
 	AsFile() (*FileNode, error)
 	AsFolder() (*FolderNode, error)
+
+	fmt.Stringer
 }
 
 type FolderNode struct {
@@ -22,9 +26,8 @@ type FolderNode struct {
 }
 
 type FileNode struct {
-	name      string
-	extension string
-	parent    *FolderNode
+	name   string
+	parent *FolderNode
 }
 
 // Node interface implementation for FolderNode
@@ -34,6 +37,18 @@ func (fn *FolderNode) Name() string                   { return fn.name }
 func (fn *FolderNode) Parent() *FolderNode            { return fn.parent }
 func (fn *FolderNode) AsFile() (*FileNode, error)     { return nil, ETIFolderAsFile }
 func (fn *FolderNode) AsFolder() (*FolderNode, error) { return fn, nil }
+func (fn *FolderNode) CleanName() string              { return fn.Name()[:len(fn.Name())-1] }
+
+// Stringer interface implementation for FolderNode
+func (fn *FolderNode) String() string {
+	var childlist string = ""
+	for _, c := range fn.children {
+		childlist = fmt.Sprintf("%s\n%s", childlist, c)
+	}
+
+	var str string = fmt.Sprintf("[Name: %s\nChild Count: %d\n\tChildList: %s]", fn.name, len(fn.children), childlist)
+	return str
+}
 
 // Node interface implementation for FileNode
 func (fn *FileNode) IsFile() bool                   { return true }
@@ -42,6 +57,13 @@ func (fn *FileNode) Name() string                   { return fn.name }
 func (fn *FileNode) Parent() *FolderNode            { return fn.parent }
 func (fn *FileNode) AsFile() (*FileNode, error)     { return fn, nil }
 func (fn *FileNode) AsFolder() (*FolderNode, error) { return nil, ETIFileAsFolder }
+func (fn *FileNode) CleanName() string              { return fn.Name() }
+
+// Stringer interface implementation for FileNode
+func (fn *FileNode) String() string {
+	var str string = fmt.Sprintf("=FILE=\nName: %s\nParent:%s\n==", fn.Name(), fn.Parent().Name())
+	return str
+}
 
 // General functions
 func ValidateNodeName(name string) error {
@@ -73,12 +95,12 @@ func (fn *FolderNode) addChildren(n Node) {
 /*
 Builds a new folder node with a parent and without children. By design the children slice is always non-null (but can be empty)
 */
-func NewFolderNode(name string, parent *FolderNode) (FolderNode, error) {
+func NewFolderNode(name string, parent *FolderNode) (*FolderNode, error) {
 	if err := ValidateNodeName(name); err != nil {
-		return FolderNode{}, err
+		return nil, err
 	}
 
-	return FolderNode{
+	return &FolderNode{
 		name:     name + "/",
 		parent:   parent,
 		children: []Node{},
@@ -97,8 +119,8 @@ func createRootFolder() *FolderNode {
 }
 
 /*
-	Checks if there's a specific child. Returns it if it exists or an error if it doesn't.
-*/	
+Checks if there's a specific child. Returns it if it exists or an error if it doesn't.
+*/
 func (fn *FolderNode) SearchChild(name string) (Node, error) {
 	if !fn.HasChildren() {
 		return nil, ETINoChildren
@@ -129,7 +151,7 @@ func (fn *FolderNode) HasParent() bool {
 Returns true if the current node has at least one children, false otherwise.
 */
 func (fn *FolderNode) HasChildren() bool {
-	return (fn.children != nil) && (len(fn.children) > 0)
+	return (len(fn.children) > 0)
 }
 
 /*
@@ -195,24 +217,24 @@ func (fn *FolderNode) InsertFolder(name string) (*FolderNode, error) {
 		return nil, err
 	}
 
-	fn.addChildren(&newFolder)
+	fn.addChildren(newFolder)
 
-	return &newFolder, nil
+	return newFolder, nil
 }
 
 /*
 Adds a new File as children of the current folder.
 */
-func (fn *FolderNode) InsertFile(name string, extension string) (*FileNode, error) {
-	newFile, err := NewFileNode(name, extension, fn)
+func (fn *FolderNode) InsertFile(name string) (*FileNode, error) {
+	newFile, err := NewFileNode(name, fn)
 
 	if err != nil {
 		return nil, err
 	}
 
-	fn.addChildren(&newFile)
+	fn.addChildren(newFile)
 
-	return &newFile, nil
+	return newFile, nil
 }
 
 /********************/
@@ -225,18 +247,39 @@ func (fn *FolderNode) InsertFile(name string, extension string) (*FileNode, erro
 
 // Constructor
 
-func NewFileNode(name string, extension string, parent *FolderNode) (FileNode, error) {
+func NewFileNode(name string, parent *FolderNode) (*FileNode, error) {
 	if parent == nil {
-		return FileNode{}, ETIDanglingFile
+		return nil, ETIDanglingFile
 	}
 
 	if err := ValidateNodeName(name); err != nil {
-		return FileNode{}, ETINameNotValid
+		return nil, ETINameNotValid
 	}
 
-	return FileNode{
-		name:      name,
-		extension: extension,
-		parent:    parent,
+	return &FileNode{
+		name:   name,
+		parent: parent,
 	}, nil
+}
+
+func StructuredPrint(n Node, il int) {
+	var istr string = ""
+	for i := 0; i <= 2*il; i++ {
+		istr = istr + " "
+	}
+
+	if n.IsFile() {
+		fmt.Println(istr + n.Name())
+	} else {
+		fmt.Println(istr + n.Name())
+		folder, err := n.AsFolder()
+		if err == nil && folder.HasChildren() {
+			folderChildren, err := folder.GetChildren()
+			if err == nil {
+				for _, c := range folderChildren {
+					StructuredPrint(c, il+1)
+				}
+			}
+		}
+	}
 }

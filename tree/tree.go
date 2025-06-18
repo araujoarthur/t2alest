@@ -1,11 +1,9 @@
 package tree
 
 import (
+	"fmt"
 	"strings"
 )
-
-type FilePath string
-type FilePathSteps []string
 
 type Tree struct {
 	root FolderNode
@@ -27,45 +25,176 @@ func (t *Tree) Root() *FolderNode {
 
 /*
 This function starts a navigation from the root path up to the final path in the string, returning it if it exists or an error if anything on the path
-does not exist or is a file (except the last, which can be a file).
+does not exist or is a file (except the last, which can bea file). The received path must be sanitized to remove the trailing bar
 */
-func (t *Tree) followPath(path string, current_node Node) (Node, error) {
-	
+func (t *Tree) followPath(path []string, current_node Node) (Node, error) {
 
 	if current_node == nil {
 		current_node = t.Root()
+		path = path[1:]
 	}
 
-	if path
+	if len(path) == 0 {
+		return current_node, nil
+	}
+
+	if current_node.IsFile() {
+		return nil, ETIUnableToFollow
+	}
+
+	folder, err := current_node.AsFolder()
+	if err != nil {
+		return nil, err
+	}
+
+	if !folder.HasChildren() {
+		return nil, ETIUnableToFollow
+	}
+
+	children, err := folder.GetChildren()
+	if err != nil {
+		return nil, err
+	}
+
+	evaluatedStep := path[0]
+	nextSteps := path[1:]
+
+	for _, child := range children {
+		if child.CleanName() == evaluatedStep {
+			return t.followPath(nextSteps, child)
+		}
+	}
+
+	fmt.Println("really not found")
+	return nil, ETIUnableToFollow
 }
 
 /*
-Follows a path up to the point it's not possible anymore (i.e the rest of the path doesn't exist). Returns the most distant existent element
-in the path.
+[UT] Follows a path up to the point it's not possible anymore (i.e the rest of the path doesn't exist). Returns the most distant existent element
+in the path and the portion of the path that is missing.
 */
-func (t *Tree) explorePath(path string) *Node {}
+func (t *Tree) explorePath(path []string, current_node Node) (Node, []string, error) {
+	if current_node == nil {
+		current_node = t.Root()
+		path = path[1:]
+	}
 
-/*
-Creates a file node at the given path.
-*/
-func (t *Tree) CreateFile(path string, name string) (*FileNode, error) {}
+	if len(path) == 0 { // All locations exist
+		return current_node, path, nil
+	}
 
-/*
-Creates a folder at a given path. If recursive is false, the function will fail if any of the path's folders but the last does not exist.
-*/
-func (t *Tree) CreateFolder(path string, name string, recursive bool) (*FolderNode, error) {}
-func (t *Tree) RemoveFile(path string) error                                               { return nil }
-func (t *Tree) RemoveFolder(path string, recursive bool) error                             { return nil }
-func (t *Tree) SearchAll(str string) []Node                                                {}
-func (t *Tree) SearchFile(str string) []FileNode                                           {}
-func (t *Tree) SearchFolder(str string) []FolderNode                                       {}
+	if current_node.IsFile() {
+		return nil, nil, ETIUnableToFollow
+	}
 
+	folder, err := current_node.AsFolder()
+	if err != nil {
+		return nil, nil, ETIUnableToFollow
+	}
 
-func (t FilePath) Steps() FilePathSteps {
-	return strings.Split(t, "/")
+	if !folder.HasChildren() {
+		return current_node, path, nil
+	}
+
+	children, err := folder.GetChildren()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	evaluatedStep := path[0]
+	nextSteps := path[1:]
+
+	for _, child := range children {
+		if child.CleanName() == evaluatedStep {
+			return t.explorePath(nextSteps, child)
+		}
+	}
+
+	return current_node, path, nil
+
 }
 
+/*
+C[UT] reates a file node at the given path.
+*/
+func (t *Tree) CreateFile(path string, name string) (*FileNode, error) {
+	path = strings.TrimSuffix(path, "/")
+	pathSeparated := strings.Split(path, "/")
 
-func (t FilePathSteps) Rejoin() FilePath {
-	return strings.Join(t, "/")
+	node, err := t.followPath(pathSeparated, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if node.IsFile() {
+		return nil, ETIExpectedFolderFoundFile
+	}
+
+	fnode, err := node.AsFolder()
+	if err != nil {
+		return nil, err
+	}
+
+	created, err := fnode.InsertFile(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
+
+/*
+[UT] Creates a folder at a given path. If recursive is false, the function will fail if any of the path's folders but the last does not exist.
+*/
+func (t *Tree) CreateFolder(path string, name string, recursive bool) (*FolderNode, error) {
+	pathSeparated := strings.Split(path, "/")
+
+	var createAt *FolderNode
+	if !recursive {
+		final, err := t.followPath(pathSeparated, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		createAt, err = final.AsFolder()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		furthestNode, pathLeft, err := t.explorePath(pathSeparated, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		if furthestNode.IsFile() {
+			return nil, ETIExpectedFolderFoundFile
+		}
+
+		furthestFolder, err := furthestNode.AsFolder()
+		if err != nil {
+			return nil, err
+		}
+
+		currentFolder := furthestFolder
+		for len(pathLeft) > 0 {
+			creatingNow := pathLeft[0]
+			pathLeft = pathLeft[1:]
+			currentFolder, err = currentFolder.InsertFolder(creatingNow)
+
+			if err != nil {
+				return nil, err
+			}
+
+		}
+
+		createAt = currentFolder
+	}
+
+	return createAt.InsertFolder(name)
+}
+
+func (t *Tree) RemoveFile(path string) error                   { return nil }
+func (t *Tree) RemoveFolder(path string, recursive bool) error { return nil }
+func (t *Tree) SearchAll(str string) []Node                    { return nil }
+func (t *Tree) SearchFile(str string) []FileNode               { return nil }
+func (t *Tree) SearchFolder(str string) []FolderNode           { return nil }
