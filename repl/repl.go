@@ -5,31 +5,34 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/araujoarthur/t2alest/tree"
 )
 
 func REPLStartLoop() {
-	commands := make(CommandList)
-
-	commands.RegisterCommand("ping", Command{"type 'ping' and wait for the answer", "this is a test command", func(args ...string) error {
-		fmt.Println("pong")
-		return nil
-	}})
-
-	commands.RegisterCommand("exit", Command{"no flags are available for this command", "immediately exits the application", func(args ...string) error {
-		os.Exit(0)
-		return nil
-	}})
+	commands := GetCommands()
 
 	fmt.Println("Welcome to T2Alest (R)ead-(E)val-(P)rint (L)oop")
 	fmt.Println("Remember: All paths are presumed to be relative to root (./)")
+
+	t := tree.CreateTree()
+
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
 		fmt.Print("> ")
 		scanner.Scan()
 		input := sanitizer(scanner.Text())
+		command, ok := commands[input[0]]
+		if !ok {
+			if input[0] == "q" {
+				break
+			}
+			fmt.Printf("Command '%s' does not exist.\n", input[0])
+			continue
+		}
 
-		commands[input[0]].Callback(input[1:]...)
+		command.Callback(t, input[1:]...)
 	}
 }
 
