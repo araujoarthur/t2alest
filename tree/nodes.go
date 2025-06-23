@@ -265,6 +265,35 @@ func (fn *FolderNode) InsertFile(name string) (*FileNode, error) {
 	return newFile, nil
 }
 
+/*
+Performs a depth first search on the current node's children.
+*/
+func (fn *FolderNode) DFS(name string) ([]Node, error) {
+	var results []Node
+
+	for _, c := range fn.children {
+		if c.CleanName() == name {
+			results = append(results, c)
+		}
+
+		if c.IsFolder() {
+			cAF, err := c.AsFolder()
+			if err != nil {
+				panic("should not have a non-nil error at this point")
+			}
+
+			childResults, errDFS := cAF.DFS(name)
+			if errDFS != nil {
+				return results, errDFS
+			}
+
+			results = append(results, childResults...)
+		}
+	}
+
+	return results, nil
+}
+
 /********************/
 /* FileNode methods */
 /********************/

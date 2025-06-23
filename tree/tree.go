@@ -276,7 +276,28 @@ func (t *Tree) RemoveFolder(path string, recursive bool) error {
 	return nil
 }
 
-func (t *Tree) SearchAll(str string) []Node          { return nil }
+func (t *Tree) EvaluateNodePath(node Node) string {
+	currNode := node
+	currPath := currNode.Name()
+
+	currNode = currNode.Parent()
+	for currNode != nil {
+		currPath = currNode.Name() + currPath
+		currNode = currNode.Parent()
+	}
+
+	return currPath
+}
+
+func (t *Tree) SearchAll(str string) ([]Node, error) {
+	res, err := t.Root().DFS(str)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
 func (t *Tree) SearchFile(str string) []FileNode     { return nil }
 func (t *Tree) SearchFolder(str string) []FolderNode { return nil }
 

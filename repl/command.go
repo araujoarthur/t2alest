@@ -147,8 +147,7 @@ func GetCommands() CommandList {
 		return nil
 	}})
 
-	newCl.registerCommand("find", Command{"find [-s] 'NAME'", "looks for a file or directory by 'NAME'. If the flag -s is not set, the lookup will happen in all folders and subfolders, otherwise it will perform a shallow lookup only in the root folder. ", func(t *tree.Tree, args ...string) error {
-		fmt.Println("Não implementado")
+	newCl.registerCommand("find", Command{"find 'NAME'", "looks for a file or directory by 'NAME'", func(t *tree.Tree, args ...string) error {
 		return nil
 	}})
 
