@@ -18,6 +18,8 @@ var (
 	ETIUnableToFollow          = TIErrorNew(11, "unable to follow path")
 	ETIDuplicatedName          = TIErrorNew(12, "duplicated file/folder name")
 	ETIPathNotFound            = TIErrorNew(13, "the given path was not found")
+	ETICannotRemoveParent      = TIErrorNew(14, "cannot remove the parent folder non-recursively")
+	ETICannotRemoveRoot        = TIErrorNew(15, "cannot remove the root folder")
 )
 
 type ETreeIntrinsic struct {

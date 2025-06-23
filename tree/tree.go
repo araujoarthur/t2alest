@@ -230,11 +230,55 @@ func (t *Tree) CreateFolder(path string, name string, recursive bool) (*FolderNo
 	return createAt.InsertFolder(name)
 }
 
-func (t *Tree) RemoveFile(path string) error                   { return nil }
-func (t *Tree) RemoveFolder(path string, recursive bool) error { return nil }
-func (t *Tree) SearchAll(str string) []Node                    { return nil }
-func (t *Tree) SearchFile(str string) []FileNode               { return nil }
-func (t *Tree) SearchFolder(str string) []FolderNode           { return nil }
+func (t *Tree) RemoveFile(path string) error {
+	node, err := t.FollowPath(path)
+	if err != nil {
+		return err
+	}
+
+	fil, err := node.AsFile()
+	if err != nil {
+		return err
+	}
+
+	base := filepath.Base(path)
+	filParent := fil.Parent()
+	filParent.RemoveNode(base)
+	return nil
+}
+
+func (t *Tree) RemoveFolder(path string, recursive bool) error {
+	node, err := t.FollowPath(path)
+	if err != nil {
+		return err
+	}
+
+	folder, err := node.AsFolder()
+	if err != nil {
+		return err
+	}
+
+	if folder.HasChildren() && !recursive {
+		return ETICannotRemoveParent
+	}
+
+	if folder == t.Root() {
+		return ETICannotRemoveRoot
+	}
+
+	base := filepath.Base(path)
+	folderParent := folder.Parent()
+
+	if err := folderParent.RemoveNode(base); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *Tree) SearchAll(str string) []Node          { return nil }
+func (t *Tree) SearchFile(str string) []FileNode     { return nil }
+func (t *Tree) SearchFolder(str string) []FolderNode { return nil }
 
 func dbgh(title string, msg string) {
 	fmt.Printf("[DEBUG] %s: %s\n", title, msg)

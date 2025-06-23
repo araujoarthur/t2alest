@@ -99,7 +99,35 @@ func GetCommands() CommandList {
 	}})
 
 	newCl.registerCommand("rm", Command{"rm [-r] 'PATH'", "removes a directory or file in PATH, if PATH is a directory and contains children the command will fail unless the -r flag is present", func(t *tree.Tree, args ...string) error {
-		fmt.Println("Não implementado")
+		var rec bool = false
+		cont, pos := contains(args, "-r")
+		if cont {
+			rec = true
+			pos += 1
+		}
+
+		var fullp string
+		if pos < len(args) {
+			fullp = args[pos]
+		} else {
+			return ERNoPath
+		}
+
+		actualNode, err := t.FollowPath(fullp)
+		if err != nil {
+			return err
+		}
+
+		if actualNode.IsFile() {
+			err = t.RemoveFile(fullp)
+		} else {
+			err = t.RemoveFolder(fullp, rec)
+		}
+
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}})
 

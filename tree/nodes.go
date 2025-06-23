@@ -208,6 +208,23 @@ func (fn *FolderNode) GetFileChildren() ([]FileNode, error) {
 	return resp, nil
 }
 
+func (fn *FolderNode) RemoveNode(name string) error {
+	itemPos := -1
+	for i, n := range fn.children {
+		if n.CleanName() == name {
+			itemPos = i
+			break
+		}
+	}
+
+	if itemPos == -1 {
+		return ETIChildNotFound
+	}
+
+	fn.children = append(fn.children[:itemPos], fn.children[itemPos+1:]...)
+	return nil
+}
+
 /*
 Adds a new Folder as children of the current folder.
 */
