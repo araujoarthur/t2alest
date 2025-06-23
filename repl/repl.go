@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/araujoarthur/t2alest/tree"
+	"github.com/google/shlex"
 )
 
 func REPLStartLoop() {
@@ -24,6 +25,7 @@ func REPLStartLoop() {
 		scanner.Scan()
 		input := sanitizer(scanner.Text())
 		command, ok := commands[input[0]]
+
 		if !ok {
 			if input[0] == "q" {
 				break
@@ -32,10 +34,27 @@ func REPLStartLoop() {
 			continue
 		}
 
-		command.Callback(t, input[1:]...)
+		err := command.Callback(t, input[1:]...)
+		if err != nil {
+			fmt.Printf("An error happened: \n%s\n", err)
+		}
 	}
 }
 
 func sanitizer(t string) []string {
-	return strings.Fields(strings.ToLower(t))
+	separated, err := shlex.Split(strings.ToLower(t))
+	if err != nil {
+		panic("should have no errors in shlex!")
+	}
+
+	return separated
+}
+
+func contains(slice []string, val string) (bool, int) {
+	for idx, it := range slice {
+		if it == val {
+			return true, idx
+		}
+	}
+	return false, 0
 }

@@ -16,6 +16,8 @@ var (
 	ETIExpectedFileFoundFolder = TIErrorNew(9, "expected a file node, found a folder node")
 	ETIExpectedFolderFoundFile = TIErrorNew(10, "expected a folder node, found a file node")
 	ETIUnableToFollow          = TIErrorNew(11, "unable to follow path")
+	ETIDuplicatedName          = TIErrorNew(12, "duplicated file/folder name")
+	ETIPathNotFound            = TIErrorNew(13, "the given path was not found")
 )
 
 type ETreeIntrinsic struct {

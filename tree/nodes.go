@@ -212,6 +212,11 @@ func (fn *FolderNode) GetFileChildren() ([]FileNode, error) {
 Adds a new Folder as children of the current folder.
 */
 func (fn *FolderNode) InsertFolder(name string) (*FolderNode, error) {
+	for _, child := range fn.children {
+		if child.CleanName() == name {
+			return nil, ETIDuplicatedName
+		}
+	}
 	newFolder, err := NewFolderNode(name, fn)
 	if err != nil {
 		return nil, err
@@ -226,6 +231,12 @@ func (fn *FolderNode) InsertFolder(name string) (*FolderNode, error) {
 Adds a new File as children of the current folder.
 */
 func (fn *FolderNode) InsertFile(name string) (*FileNode, error) {
+	for _, child := range fn.children {
+		if child.CleanName() == name {
+			return nil, ETIDuplicatedName
+		}
+	}
+
 	newFile, err := NewFileNode(name, fn)
 
 	if err != nil {
