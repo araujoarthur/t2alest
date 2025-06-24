@@ -8,6 +8,7 @@ var (
 	ERNoPath          = RErrorNew(1, "path is needed but was not found")
 	ERMissingParams   = RErrorNew(2, "there are missing parameters") // generic error for missing parameters
 	ERWrongParamCount = RErrorNew(3, "wrong parameter count")
+	ERNoResults       = RErrorNew(4, "the current search yielded no results")
 )
 
 type ERepl struct {

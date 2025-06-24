@@ -148,6 +148,27 @@ func GetCommands() CommandList {
 	}})
 
 	newCl.registerCommand("find", Command{"find 'NAME'", "looks for a file or directory by 'NAME'", func(t *tree.Tree, args ...string) error {
+		if len(args) != 1 {
+			return ERWrongParamCount
+		}
+
+		results, err := t.SearchAll(args[0])
+		if err != nil {
+			return err
+		}
+
+		resultStrings := ""
+		if len(results) > 0 {
+			for _, result := range results {
+				resultStrings = resultStrings + t.EvaluateNodePath(result) + "\n" // RUNTIME PANICS HERE.
+			}
+		} else {
+			return ERNoResults
+		}
+
+		fmt.Printf("Results (%d):\n", len(results))
+		fmt.Println(resultStrings)
+
 		return nil
 	}})
 
@@ -158,6 +179,33 @@ func GetCommands() CommandList {
 
 	newCl.registerCommand("testitf", Command{"testitf ...args", "generic interface to test functions", func(t *tree.Tree, args ...string) error {
 		t.FollowPath("/rashna/foo/boal")
+		return nil
+	}})
+
+	newCl.registerCommand("graphviz", Command{"graphviz NAME", "saves the current tree in the graphviz format", func(t *tree.Tree, args ...string) error {
+		if len(args) == 0 {
+			return ERWrongParamCount
+		}
+		graph := "digraph G {\n" + t.Root().GraphVizOutput() + "}"
+		file, err := os.Create(args[0])
+		if err != nil {
+			fmt.Println(graph)
+			return err
+		}
+
+		// defines a closure to close the file in a idiomatic and safe way
+		defer func() {
+			if err := file.Close(); err != nil {
+				fmt.Println("ERROR CLOSING THE FILE: ", err)
+			}
+		}()
+
+		_, err = file.WriteString(graph)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("file '%s' saved\n", args[0])
 		return nil
 	}})
 

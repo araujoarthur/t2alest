@@ -5,11 +5,20 @@ import (
 	"strings"
 )
 
+/*
+The Node interface provides a common language to check if a Node under evaluation is a folder or a file. It serves the functions to cast it to each type as well. Furthermore, this interface also serves methods to access common properties such as the name of the node and the parent.
+
+This interface also includes the implementation of the fmt.Stringer interface, which means that every node is also printable, allowing recursive printing through interface pointers.
+*/
 type Node interface {
 	IsFile() bool
 	IsFolder() bool
 
 	Name() string
+	/*
+		The CleanName method on Node interface serves as a bridge to deal with folders and files within a common dialect. This is required because path for both folders and files are compared without the trailing slash (which is contained in the FolderNode name.)
+		From this extends the fact that CleanName() returns the same as Name() for files, but not for folders.
+	*/
 	CleanName() string
 	Parent() *FolderNode
 
@@ -19,12 +28,19 @@ type Node interface {
 	fmt.Stringer
 }
 
+/*
+FolderNode is a concrete implementation of the Node interface that virtually represents a folder.
+It also defines that a folder can father any kind of Node (Folder or File), but can only be parented by another folder (or none at all).
+*/
 type FolderNode struct {
 	name     string
 	parent   *FolderNode
 	children []Node
 }
 
+/*
+FileNode is a concrete implementation of the Node interface that virtually represents a file. Files are a special branch of nodes because they are always leaf nodes (i.e can't have children).
+*/
 type FileNode struct {
 	name   string
 	parent *FolderNode
@@ -88,6 +104,17 @@ func (fn *FolderNode) addChildren(n Node) {
 	fn.children = append(fn.children, n)
 }
 
+/*
+Creates a special root folder.
+*/
+func createRootFolder() *FolderNode {
+	return &FolderNode{
+		name:     "./",
+		parent:   nil,
+		children: []Node{},
+	}
+}
+
 /* PUBLISHED */
 
 // Constructor
@@ -107,15 +134,24 @@ func NewFolderNode(name string, parent *FolderNode) (*FolderNode, error) {
 	}, nil
 }
 
-/*
-Creates a special root folder.
-*/
-func createRootFolder() *FolderNode {
-	return &FolderNode{
-		name:     "./",
-		parent:   nil,
-		children: []Node{},
+func (fn *FolderNode) GraphVizOutput() string {
+	graphviz := ""
+	for _, c := range fn.children {
+		clnName := fn.CleanName()
+		if clnName == "." {
+			clnName = "/"
+		}
+		graphviz = graphviz + "\"" + clnName + "\" -> \"" + c.CleanName() + "\"" + "\n"
+		if c.IsFolder() {
+			cAF, err := c.AsFolder()
+			if err != nil {
+				panic("should not have a non nil error at this point")
+			}
+			graphviz = graphviz + cAF.GraphVizOutput()
+		}
 	}
+
+	return graphviz
 }
 
 /*
