@@ -1,0 +1,10 @@
+digraph G {
+"/" -> "bin"
+"bin" -> "apps"
+"/" -> "home"
+"home" -> "user"
+"user" -> "desktop"
+"desktop" -> "image.png"
+"/" -> "lib"
+"lib" -> "image.png"
+}

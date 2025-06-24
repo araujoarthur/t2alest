@@ -13,6 +13,7 @@ t := tree.CreateTree()
 package tree
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 )
@@ -76,6 +77,7 @@ func (t *Tree) followPath(path []string, current_node Node) (Node, error) {
 			return t.followPath(nextSteps, child)
 		}
 	}
+
 	return nil, ETIPathNotFound
 }
 
@@ -131,23 +133,25 @@ func (t *Tree) explorePath(path []string, current_node Node) (Node, []string, er
 		return nil, nil, err
 	}
 
-	evaluatedStep := path[0]
+	evaluatedStep := strings.TrimSuffix(path[0], "/")
 	nextSteps := path[1:]
 
 	for _, child := range children {
+		fmt.Printf("CleanName: %s | Evaluated step: %s\n", child.CleanName(), evaluatedStep)
 		if child.CleanName() == evaluatedStep {
 			return t.explorePath(nextSteps, child)
 		}
 	}
 
-	return current_node, path, nil
+	return current_node, nextSteps, nil
 
 }
 
 /*
-C[UT] reates a file node at the given path.
+Creates a file node at the given path.
 */
 func (t *Tree) CreateFile(path string, name string) (*FileNode, error) {
+	path = filepath.ToSlash(path)
 	path = strings.TrimSuffix(path, "/")
 	pathSeparated := strings.Split(path, "/")
 
@@ -174,7 +178,7 @@ func (t *Tree) CreateFile(path string, name string) (*FileNode, error) {
 }
 
 /*
-[UT] Creates a folder at a given path. If recursive is false, the function will fail if any of the path's folders but the last does not exist.
+Creates a folder at a given path. If recursive is false, the function will fail if any of the path's folders but the last does not exist.
 */
 func (t *Tree) CreateFolder(path string, name string, recursive bool) (*FolderNode, error) {
 	path = filepath.ToSlash(path)
@@ -196,6 +200,7 @@ func (t *Tree) CreateFolder(path string, name string, recursive bool) (*FolderNo
 			return nil, err
 		}
 
+		fmt.Printf("furthestNode: %s\n\npathLeft: %s\n", furthestNode.Name(), pathLeft)
 		if furthestNode.IsFile() {
 			return nil, ETIExpectedFolderFoundFile
 		}
@@ -207,7 +212,9 @@ func (t *Tree) CreateFolder(path string, name string, recursive bool) (*FolderNo
 
 		currentFolder := furthestFolder
 		for len(pathLeft) > 0 {
+
 			creatingNow := strings.TrimSuffix(pathLeft[0], "/")
+			fmt.Printf("Creating now: %s, pathleft: %s\n\n", creatingNow, pathLeft)
 			pathLeft = pathLeft[1:]
 			currentFolder, err = currentFolder.InsertFolder(creatingNow)
 
